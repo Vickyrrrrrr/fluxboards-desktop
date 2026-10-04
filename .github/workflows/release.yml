@@ -1,0 +1,85 @@
+name: release
+# Builds the Windows app from the private source (Vickyrrrrrr/fluxboard, read through the read-only
+# deploy key SOURCE_DEPLOY_KEY) and publishes it here. Started by hand, for a tag desktop-vX.Y.Z
+# whose desktop/package.json version is X.Y.Z. Nothing is published unless every step passes.
+on:
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: "Source tag in fluxboard, e.g. desktop-v0.3.0"
+        required: true
+      publish:
+        description: "Publish the release (off: build and test only)"
+        type: boolean
+        default: true
+permissions:
+  contents: write
+concurrency:
+  group: release
+  cancel-in-progress: false
+jobs:
+  release:
+    runs-on: windows-latest
+    timeout-minutes: 45
+    defaults:
+      run:
+        shell: bash
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          repository: Vickyrrrrrr/fluxboard
+          ref: ${{ inputs.tag }}
+          ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
+          persist-credentials: false
+          path: source
+      - name: Tag matches the app version
+        working-directory: source
+        run: |
+          version=$(node -p "require('./desktop/package.json').version")
+          if [ "${{ inputs.tag }}" != "desktop-v$version" ]; then echo "::error::${{ inputs.tag }} does not match desktop/package.json $version"; exit 1; fi
+          echo "VERSION=$version" >> "$GITHUB_ENV"
+      - uses: oven-sh/setup-bun@v2
+        with:
+          bun-version: 1.4.2
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: npm
+          cache-dependency-path: source/desktop/package-lock.json
+      - uses: actions/cache@v4
+        with:
+          path: ~/.bun/install/cache
+          key: bun-windows-${{ hashFiles('source/bun.lock') }}
+      - run: bun install --frozen-lockfile
+        working-directory: source
+      - run: npm ci --no-audit --no-fund
+        working-directory: source/desktop
+      - run: node --test "desktop/tests/*.test.cjs"
+        working-directory: source
+      - run: npm run prepare:runtime
+        working-directory: source/desktop
+      - run: npm run dist
+        working-directory: source/desktop
+      # The packaged app end to end, twice on one profile: launch, Local, compile, route, an agent
+      # turn against a mock model, then a reopen that finds it all.
+      - name: Smoke test
+        shell: pwsh
+        working-directory: source/desktop/release
+        run: |
+          $profile = Join-Path $env:RUNNER_TEMP 'smoke'
+          foreach ($run in 1, 2) {
+            $p = Start-Process -FilePath 'win-unpacked\Fluxboards.exe' -ArgumentList '--smoke-test', "--smoke-profile=$profile" -RedirectStandardOutput "$profile-$run.out" -RedirectStandardError "$profile-$run.err" -PassThru
+            if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "smoke run $run timed out" }
+            Get-Content "$profile-$run.out", "$profile-$run.err"
+            if (-not (Select-String -Path "$profile-$run.out" -Pattern 'DESKTOP_SMOKE_PASS' -Quiet)) { throw "smoke run $run failed" }
+          }
+          if (-not (Select-String -Path "$profile-2.out" -Pattern 'DESKTOP_REOPEN_PASS' -Quiet)) { throw 'reopen check failed' }
+      - name: Publish
+        if: inputs.publish
+        working-directory: source/desktop/release
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          grep -q "^version: $VERSION$" latest.yml
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "fluxboards $VERSION" --latest --generate-notes \
+            Fluxboards-Setup.exe Fluxboards-Setup.exe.blockmap latest.yml
