@@ -66,14 +66,14 @@ jobs:
         shell: pwsh
         working-directory: source/desktop/release
         run: |
-          $profile = Join-Path $env:RUNNER_TEMP 'smoke'
+          $dir = Join-Path $env:RUNNER_TEMP 'smoke'
           foreach ($run in 1, 2) {
-            $p = Start-Process -FilePath 'win-unpacked\Fluxboards.exe' -ArgumentList '--smoke-test', "--smoke-profile=$profile" -RedirectStandardOutput "$profile-$run.out" -RedirectStandardError "$profile-$run.err" -PassThru
+            $p = Start-Process -FilePath 'win-unpacked\Fluxboards.exe' -ArgumentList '--smoke-test', "--smoke-profile=$dir" -RedirectStandardOutput "$dir-$run.out" -RedirectStandardError "$dir-$run.err" -PassThru
             if (-not $p.WaitForExit(300000)) { $p.Kill(); throw "smoke run $run timed out" }
-            Get-Content "$profile-$run.out", "$profile-$run.err"
-            if (-not (Select-String -Path "$profile-$run.out" -Pattern 'DESKTOP_SMOKE_PASS' -Quiet)) { throw "smoke run $run failed" }
+            Get-Content "$dir-$run.out", "$dir-$run.err"
+            if (-not (Select-String -Path "$dir-$run.out" -Pattern 'DESKTOP_SMOKE_PASS' -Quiet)) { throw "smoke run $run failed" }
           }
-          if (-not (Select-String -Path "$profile-2.out" -Pattern 'DESKTOP_REOPEN_PASS' -Quiet)) { throw 'reopen check failed' }
+          if (-not (Select-String -Path "$dir-2.out" -Pattern 'DESKTOP_REOPEN_PASS' -Quiet)) { throw 'reopen check failed' }
       - name: Publish
         if: inputs.publish
         working-directory: source/desktop/release
@@ -81,5 +81,5 @@ jobs:
           GH_TOKEN: ${{ github.token }}
         run: |
           grep -q "^version: $VERSION$" latest.yml
-          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "fluxboards $VERSION" --latest --generate-notes \
+          gh release create "v$VERSION" --repo "$GITHUB_REPOSITORY" --title "fluxboards $VERSION" --latest --notes "Windows 10 & 11 · 64-bit" \
             Fluxboards-Setup.exe Fluxboards-Setup.exe.blockmap latest.yml
