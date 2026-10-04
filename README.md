@@ -1,18 +1,13 @@
-# Fluxboards for Windows
+# fluxboards for Windows
 
-Design circuit boards by talking to an agent. Fluxboards writes the board, checks it, routes it and exports Gerbers and a KiCad project.
+The bench, on your machine. Your hardware does the heavy work. Your account goes everywhere.
 
-**[Download for Windows](https://github.com/Vickyrrrrrr/fluxboards-desktop/releases/latest/download/Fluxboards-Setup.exe)** · Windows 10 or 11, 64-bit
+**[Download for Windows](https://github.com/Vickyrrrrrr/fluxboards-desktop/releases/latest/download/Fluxboards-Setup.exe)** · Windows 10 & 11 · 64-bit
 
-## Two workspaces
+- **Your hardware.** Routing and every check run on your own processor, with no queue.
+- **Your disk.** Boards and chats live in a folder you own, and open without a connection.
+- **One account.** Sign in once, then switch between your machine and the cloud in a click.
 
-- **Local.** Boards, chats, builds and routing run on your computer and stay there. Connect your own model provider.
-- **Cloud.** Your fluxboards.tech account, the same boards and chats as on the web.
+The app updates itself. Until the installer is signed, Windows may ask to confirm: **More info → Run anyway**.
 
-The app updates itself.
-
-## Install
-
-Run `Fluxboards-Setup.exe`. Until the installer is signed, Windows may show "Windows protected your PC": choose **More info**, then **Run anyway**.
-
-This repository holds releases only. Web app: [app.fluxboards.tech](https://app.fluxboards.tech)
+[fluxboards.tech](https://fluxboards.tech)
