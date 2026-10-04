@@ -63,7 +63,8 @@ jobs:
         working-directory: source
       - run: npm run prepare:runtime
         working-directory: source/desktop
-      - run: npm run dist
+      # Build only: on CI electron-builder would publish by itself; the Publish step below does it once all checks pass.
+      - run: npx electron-builder --win nsis --x64 --publish never
         working-directory: source/desktop
       # The packaged app end to end, twice on one profile: launch, Local, compile, route, an agent
       # turn against a mock model, then a reopen that finds it all.
