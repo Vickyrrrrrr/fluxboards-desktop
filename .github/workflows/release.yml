@@ -1,8 +1,11 @@
 name: release
 # Builds the Windows app from the private source (Vickyrrrrrr/fluxboard, read through the read-only
-# deploy key SOURCE_DEPLOY_KEY) and publishes it here. Started by hand, for a tag desktop-vX.Y.Z
-# whose desktop/package.json version is X.Y.Z. Nothing is published unless every step passes.
+# deploy key SOURCE_DEPLOY_KEY) and publishes it here. Started by a tag vX.Y.Z, which fluxboard's
+# desktop-release workflow pushes for its tag desktop-vX.Y.Z, or by hand. Nothing is published
+# unless every step passes.
 on:
+  push:
+    tags: ["v*"]
   workflow_dispatch:
     inputs:
       tag:
@@ -17,6 +20,8 @@ permissions:
 concurrency:
   group: release
   cancel-in-progress: false
+env:
+  SOURCE_TAG: ${{ inputs.tag || format('desktop-{0}', github.ref_name) }}
 jobs:
   release:
     runs-on: windows-latest
@@ -28,7 +33,7 @@ jobs:
       - uses: actions/checkout@v4
         with:
           repository: Vickyrrrrrr/fluxboard
-          ref: ${{ inputs.tag }}
+          ref: ${{ env.SOURCE_TAG }}
           ssh-key: ${{ secrets.SOURCE_DEPLOY_KEY }}
           persist-credentials: false
           path: source
@@ -36,7 +41,7 @@ jobs:
         working-directory: source
         run: |
           version=$(node -p "require('./desktop/package.json').version")
-          if [ "${{ inputs.tag }}" != "desktop-v$version" ]; then echo "::error::${{ inputs.tag }} does not match desktop/package.json $version"; exit 1; fi
+          if [ "$SOURCE_TAG" != "desktop-v$version" ]; then echo "::error::$SOURCE_TAG does not match desktop/package.json $version"; exit 1; fi
           echo "VERSION=$version" >> "$GITHUB_ENV"
       - uses: oven-sh/setup-bun@v2
         with:
@@ -75,7 +80,7 @@ jobs:
           }
           if (-not (Select-String -Path "$dir-2.out" -Pattern 'DESKTOP_REOPEN_PASS' -Quiet)) { throw 'reopen check failed' }
       - name: Publish
-        if: inputs.publish
+        if: github.event_name == 'push' || inputs.publish
         working-directory: source/desktop/release
         env:
           GH_TOKEN: ${{ github.token }}
