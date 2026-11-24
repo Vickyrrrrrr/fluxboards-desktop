@@ -8,9 +8,8 @@ The Windows app is free. In its Local mode there are no limits on boards, routes
 
 ## New in 0.5.0
 
-- **Boards open in about a second.** Right after launch, the home shows what is starting and how long it has taken.
-- **The latest tscircuit engine.** Routing is 7% faster across 95 real boards, and the same 79 route clean.
-- **Cleaner schematics.** Overlapping parts and colliding labels are reported with a fix the AI applies.
+- Free, with no limits, in Local mode
+- The latest tscircuit engine: routing 7% faster
 
 ## What it does
 
